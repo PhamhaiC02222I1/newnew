@@ -6,6 +6,10 @@ import com.codegym.md4casequizz.model.Product;
 import com.codegym.md4casequizz.model.Tour;
 import com.codegym.md4casequizz.service.tour.TourServiceIMPL;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,7 +18,7 @@ import java.util.Optional;
 
 @RestController
 @CrossOrigin("*")
-@RequestMapping("/tour")
+@RequestMapping("tour")
 public class TourController {
     @Autowired
     TourServiceIMPL tourServiceIMPL;
@@ -43,11 +47,27 @@ public class TourController {
         return new ResponseEntity<>(new ResponMessage("create success"), HttpStatus.CREATED);
     }
     @GetMapping
-    public ResponseEntity<?> listCategory() {
-        Iterable<Tour> categories = tourServiceIMPL.findAll();
-        if (categories != null) {
-            return new ResponseEntity<>(categories, HttpStatus.OK);
+    public ResponseEntity<?> pageProduct(@PageableDefault(sort = "name",direction = Sort.Direction.ASC) Pageable pageable){
+        Page<Tour> productPage=tourServiceIMPL.findAll(pageable);
+        if (productPage.isEmpty()){
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        return new ResponseEntity<>(productPage,HttpStatus.OK);
+    }
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateCategory(@PathVariable Long id,@RequestBody Tour tour){
+        Optional<Tour> category1=tourServiceIMPL.findById(id);
+        if (!category1.isPresent()){
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        if (tourServiceIMPL.existsByName(tour.getName())){
+            return new ResponseEntity<>(new ResponMessage("tour name is existed"),HttpStatus.OK);
+        }
+
+        category1.get().setName(tour.getName());
+        category1.get().setPrice(tour.getPrice());
+        category1.get().setDesciption(tour.getDesciption());
+        tourServiceIMPL.save(category1.get());
+        return new ResponseEntity<>(new ResponMessage("update success"),HttpStatus.OK);
     }
 }
